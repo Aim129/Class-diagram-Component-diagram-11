@@ -1,79 +1,80 @@
 ```mermaid 
 classDiagram
 
-%% === Users ===
+%% === Пользователи ===
 class User {
   <<abstract>>
   +id: UUID
-  +name: String
+  +имя: String
   +email: String
-  +phone: String
-  +address: String
-  +role: String
-  +register()
-  +login()
-  +updateProfile()
+  +телефон: String
+  +адрес: String
+  +роль: String
+  +зарегистрироваться()
+  +войти()
+  +обновитьДанные()
 }
 
 class Client {
-  +loyaltyPoints: int
-  +addToCart()
-  +checkout()
-  +leaveReview()
+  +баллыЛояльности: int
+  +добавитьВКорзину()
+  +оформитьЗаказ()
+  +оставитьОтзыв()
 }
 
 class Administrator {
-  +createProduct()
-  +updateProduct()
-  +deleteProduct()
-  +viewLogs()
+  +создатьТовар()
+  +обновитьТовар()
+  +удалитьТовар()
+  +просмотретьЛоги()
 }
 
 User <|-- Client
 User <|-- Administrator
 
-%% === Products ===
+%% === Товары ===
 class Product {
   +id: UUID
-  +name: String
-  +description: String
-  +price: float
-  +categoryId: UUID
-  +images: List
-  +create()
-  +update()
-  +delete()
+  +название: String
+  +описание: String
+  +цена: float
+  +категорияId: UUID
+  +изображения: List
+  +количество: int
+  +создать()
+  +обновить()
+  +удалить()
 }
 
 class Category {
   +id: UUID
-  +name: String
+  +название: String
 }
 
 Product --> Category
 
-%% === Inventory (multiple warehouses) ===
+%% === Склады (поддержка нескольких складов) ===
 class Warehouse {
   +id: UUID
-  +name: String
-  +address: String
+  +название: String
+  +адрес: String
 }
 
 class InventoryItem {
   +productId: UUID
   +warehouseId: UUID
-  +quantity: int
+  +количество: int
 }
 
 Product --> InventoryItem
 Warehouse --> InventoryItem
 
-%% === Cart / Orders ===
+%% === Корзина и заказы ===
 class Cart {
   +id: UUID
   +clientId: UUID
-  +applyPromo()
-  +calculateTotal()
+  +применитьПромокод()
+  +рассчитатьИтог()
 }
 
 class CartItem {
@@ -87,122 +88,126 @@ Client --> Cart
 
 class Order {
   +id: UUID
-  +createdAt: Date
-  +status: String
-  +totalAmount: float
-  +place()
-  +cancel()
-  +markPaid()
+  +датаСоздания: Date
+  +статус: String
+  +итого: float
+  +оформить()
+  +отменить()
+  +оплатить()
 }
 
 class OrderItem {
   +productId: UUID
   +quantity: int
-  +unitPrice: float
+  +ценаЗаЕдиницу: float
 }
 
 Client --> Order
 Order --> OrderItem
 OrderItem --> Product
 
-%% === Payments ===
+%% === Платежи ===
 class Payment {
   <<abstract>>
   +id: UUID
-  +type: String
-  +amount: float
-  +status: String
-  +process()
-  +refund()
+  +тип: String
+  +сумма: float
+  +статус: String
+  +обработать()
+  +вернуть()
 }
+
 class CardPayment {
-  +cardLast4: String
+  +последние4Цифры: String
 }
+
 class EWalletPayment {
-  +walletId: String
+  +idКошелька: String
 }
+
 Payment <|-- CardPayment
 Payment <|-- EWalletPayment
 Order --> Payment
 
-%% === Delivery ===
+%% === Доставка ===
 class Delivery {
   +id: UUID
-  +address: String
-  +status: String
-  +trackingNumber: String
-  +ship()
-  +track()
-  +complete()
+  +адрес: String
+  +статус: String
+  +трекНомер: String
+  +отправить()
+  +отслеживать()
+  +завершить()
 }
 
 class Courier {
   +id: UUID
-  +name: String
-  +phone: String
+  +имя: String
+  +телефон: String
 }
 
 Order --> Delivery
 Delivery --> Courier
 
-%% === Promo / Discounts ===
+%% === Скидки и промокоды ===
 class PromoCode {
-  +code: String
-  +discountType: String
-  +amount: float
-  +isValid()
-  +apply()
+  +код: String
+  +типСкидки: String
+  +значение: float
+  +действителен()
+  +применить()
 }
 
 class Discount {
   +id: UUID
-  +percentage: float
-  +fixedAmount: float
+  +процент: float
+  +фиксСумма: float
 }
 
 Product --> Discount
 
-%% === Reviews ===
+%% === Отзывы ===
 class Review {
   +id: UUID
   +productId: UUID
   +clientId: UUID
-  +rating: int
-  +comment: String
+  +рейтинг: int
+  +комментарий: String
 }
 
 Client --> Review
 Product --> Review
 
-%% === Audit Logs ===
+%% === Логи администраторов ===
 class AuditLog {
   +id: UUID
   +adminId: UUID
-  +action: String
-  +timestamp: Date
+  +действие: String
+  +дата: Date
 }
 
 Administrator --> AuditLog
 
-%% === Adapters (API integration) ===
+%% === Внешние интеграции (API) ===
 class PaymentGatewayAdapter {
   <<interface>>
-  +charge()
-  +refund()
+  +создатьПлатёж()
+  +вернутьПлатёж()
 }
+
 class ShippingProviderAdapter {
   <<interface>>
-  +createShipment()
-  +trackShipment()
+  +создатьОтправку()
+  +получитьТрек()
 }
 
 PaymentGatewayAdapter <.. CardPayment
 PaymentGatewayAdapter <.. EWalletPayment
 ShippingProviderAdapter <.. Delivery
 
-%% === Product Factory ===
+%% === Фабрика товаров ===
 class ProductFactory {
-  +createProduct()
+  +создатьТовар()
 }
 
 ```
