@@ -1,248 +1,208 @@
 ```mermaid 
 classDiagram
-    %% --- Абстрактный пользователь ---
-    class User {
-      <<abstract>>
-      - id: UUID
-      - name: String
-      - email: String
-      - phone: String
-      - address: Address
-      - role: Role
-      + register(): boolean
-      + login(email, password): Session
-      + updateProfile(data): void
-    }
-    User <|-- Client
-    User <|-- Administrator
 
-    class Client {
-      - loyaltyAccount: LoyaltyAccount
-      - orderHistory: List<Order>
-      + addToCart(productId, qty): void
-      + checkout(cart, paymentInfo): Order
-      + leaveReview(productId, rating, text): Review
-    }
+%% === Users ===
+class User {
+  <<abstract>>
+  +id: UUID
+  +name: String
+  +email: String
+  +phone: String
+  +address: String
+  +role: String
+  +register()
+  +login()
+  +updateProfile()
+}
 
-    class Administrator {
-      + createProduct(productData): Product
-      + updateProduct(productId, data): void
-      + deleteProduct(productId): void
-      + viewAuditLogs(): List<AuditLog>
-    }
+class Client {
+  +loyaltyPoints: int
+  +addToCart()
+  +checkout()
+  +leaveReview()
+}
 
-    %% --- Продукты и инвентарь ---
-    class Product {
-      - id: UUID
-      - name: String
-      - description: String
-      - basePrice: Money
-      - categoryId: UUID
-      - images: List<URL>
-      + create(): boolean
-      + update(data): boolean
-      + delete(): boolean
-      + applyDiscount(discount: Discount): Money
-    }
+class Administrator {
+  +createProduct()
+  +updateProduct()
+  +deleteProduct()
+  +viewLogs()
+}
 
-    class Category {
-      - id: UUID
-      - name: String
-      - parentCategoryId: UUID
-      + addChildCategory(c: Category): void
-    }
+User <|-- Client
+User <|-- Administrator
 
-    %% Мульти-склад
-    class Warehouse {
-      - id: UUID
-      - name: String
-      - address: Address
-      + getStock(productId): int
-    }
+%% === Products ===
+class Product {
+  +id: UUID
+  +name: String
+  +description: String
+  +price: float
+  +categoryId: UUID
+  +images: List
+  +create()
+  +update()
+  +delete()
+}
 
-    class InventoryItem {
-      - id: UUID
-      - productId: UUID
-      - warehouseId: UUID
-      - quantity: int
-      + reserve(qty): boolean
-      + release(qty): void
-      + transferTo(warehouseId, qty): boolean
-    }
+class Category {
+  +id: UUID
+  +name: String
+}
 
-    %% --- Заказы и корзина ---
-    class Cart {
-      - id: UUID
-      - clientId: UUID
-      - items: List<CartItem>
-      - promoCode: PromoCode
-      + addItem(productId, qty): void
-      + removeItem(productId): void
-      + applyPromo(code): boolean
-      + calculateTotal(): Money
-    }
+Product --> Category
 
-    class CartItem {
-      - productId: UUID
-      - quantity: int
-      - priceAtAdd: Money
-    }
+%% === Inventory (multiple warehouses) ===
+class Warehouse {
+  +id: UUID
+  +name: String
+  +address: String
+}
 
-    class Order {
-      - id: UUID
-      - createdAt: DateTime
-      - status: OrderStatus
-      - clientId: UUID
-      - items: List<OrderItem)
-      - deliveryId: UUID
-      - paymentId: UUID
-      - totalAmount: Money
-      + place(): boolean
-      + cancel(): boolean
-      + markPaid(paymentId): boolean
-      + updateStatus(status): void
-    }
+class InventoryItem {
+  +productId: UUID
+  +warehouseId: UUID
+  +quantity: int
+}
 
-    class OrderItem {
-      - productId: UUID
-      - quantity: int
-      - unitPrice: Money
-      - subtotal: Money
-    }
+Product --> InventoryItem
+Warehouse --> InventoryItem
 
-    %% --- Платежи ---
-    class Payment {
-      <<abstract>>
-      - id: UUID
-      - type: PaymentType
-      - amount: Money
-      - status: PaymentStatus
-      - createdAt: DateTime
-      + process(): PaymentResult
-      + refund(amount): RefundResult
-    }
-    Payment <|-- CardPayment
-    Payment <|-- EWalletPayment
+%% === Cart / Orders ===
+class Cart {
+  +id: UUID
+  +clientId: UUID
+  +applyPromo()
+  +calculateTotal()
+}
 
-    class CardPayment {
-      - cardLast4: String
-      - cardBrand: String
-      + process(): PaymentResult
-      + refund(amount): RefundResult
-    }
+class CartItem {
+  +productId: UUID
+  +quantity: int
+  +price: float
+}
 
-    class EWalletPayment {
-      - walletId: String
-      + process(): PaymentResult
-      + refund(amount): RefundResult
-    }
+Cart --> CartItem
+Client --> Cart
 
-    %% --- Логистика / Доставка ---
-    class Delivery {
-      - id: UUID
-      - orderId: UUID
-      - address: Address
-      - status: DeliveryStatus
-      - courierId: UUID
-      - trackingNumber: String
-      - providerId: UUID
-      + ship(): boolean
-      + track(): TrackingInfo
-      + complete(): void
-    }
+class Order {
+  +id: UUID
+  +createdAt: Date
+  +status: String
+  +totalAmount: float
+  +place()
+  +cancel()
+  +markPaid()
+}
 
-    class Courier {
-      - id: UUID
-      - name: String
-      - phone: String
-      - vehicleInfo: String
-      + assignDelivery(deliveryId): boolean
-    }
+class OrderItem {
+  +productId: UUID
+  +quantity: int
+  +unitPrice: float
+}
 
-    class ShippingProviderAdapter {
-      <<interface>>
-      + createShipment(delivery): ShipmentResponse
-      + trackShipment(trackingNumber): TrackingInfo
-    }
+Client --> Order
+Order --> OrderItem
+OrderItem --> Product
 
-    %% --- Промо и скидки ---
-    class PromoCode {
-      - code: String
-      - discountType: DiscountType
-      - amount: Money | float
-      - validFrom: DateTime
-      - validUntil: DateTime
-      - usageLimit: int
-      + isValid(cart): boolean
-      + apply(cart): Money
-    }
+%% === Payments ===
+class Payment {
+  <<abstract>>
+  +id: UUID
+  +type: String
+  +amount: float
+  +status: String
+  +process()
+  +refund()
+}
+class CardPayment {
+  +cardLast4: String
+}
+class EWalletPayment {
+  +walletId: String
+}
+Payment <|-- CardPayment
+Payment <|-- EWalletPayment
+Order --> Payment
 
-    class Discount {
-      - id: UUID
-      - productId: UUID
-      - percentage: float
-      - fixedAmount: Money
-      - validFrom: DateTime
-      - validUntil: DateTime
-    }
+%% === Delivery ===
+class Delivery {
+  +id: UUID
+  +address: String
+  +status: String
+  +trackingNumber: String
+  +ship()
+  +track()
+  +complete()
+}
 
-    %% --- Отзывы и рейтинг ---
-    class Review {
-      - id: UUID
-      - productId: UUID
-      - clientId: UUID
-      - rating: int
-      - comment: String
-      - createdAt: DateTime
-    }
+class Courier {
+  +id: UUID
+  +name: String
+  +phone: String
+}
 
-    %% --- Лояльность и аудит ---
-    class LoyaltyAccount {
-      - clientId: UUID
-      - points: int
-      + addPoints(amount): void
-      + redeemPoints(amount): boolean
-    }
+Order --> Delivery
+Delivery --> Courier
 
-    class AuditLog {
-      - id: UUID
-      - adminId: UUID
-      - action: String
-      - timestamp: DateTime
-      - details: String
-    }
+%% === Promo / Discounts ===
+class PromoCode {
+  +code: String
+  +discountType: String
+  +amount: float
+  +isValid()
+  +apply()
+}
 
-    %% --- Ассоциации / мультипликативности (комментарии) ---
-    %% Клиент 1..* Заказы
-    Client "1" o-- "*" Order : "places"
-    %% Заказ 1 -- * OrderItem (каждый OrderItem -> один Product)
-    Order "1" o-- "*" OrderItem : "contains"
-    OrderItem "*" --> "1" Product : "refers"
-    %% Товар принадлежит Категории
-    Product "*" --> "1" Category : "in"
-    %% Product <-> InventoryItem (много в складах)
-    Product "1" o-- "*" InventoryItem : "stock entries"
-    Warehouse "1" o-- "*" InventoryItem : "holds"
-    %% Заказ 1 -- 1 Доставка
-    Order "1" o-- "1" Delivery : "has"
-    Delivery "1" --> "1" Courier : "handled by"
-    %% Оплата связана с заказом
-    Order "1" --> "1" Payment : "paid by"
-    %% Отзывы: Client 1..* Review ; Product 1..* Review
-    Client "1" o-- "*" Review : "writes"
-    Product "1" o-- "*" Review : "receives"
+class Discount {
+  +id: UUID
+  +percentage: float
+  +fixedAmount: float
+}
 
-    %% --- Взаимодействия с внешними API (адаптеры) ---
-    class PaymentGatewayAdapter {
-      <<interface>>
-      + charge(paymentInfo): PaymentResult
-      + refund(transactionId, amount): RefundResult
-    }
-    PaymentGatewayAdapter <.. CardPayment
-    PaymentGatewayAdapter <.. EWalletPayment
+Product --> Discount
 
-    %% --- Доп: фабрика продуктов (обозначение) ---
-    class ProductFactory {
-      + createProduct(type, data): Product
-    }
+%% === Reviews ===
+class Review {
+  +id: UUID
+  +productId: UUID
+  +clientId: UUID
+  +rating: int
+  +comment: String
+}
+
+Client --> Review
+Product --> Review
+
+%% === Audit Logs ===
+class AuditLog {
+  +id: UUID
+  +adminId: UUID
+  +action: String
+  +timestamp: Date
+}
+
+Administrator --> AuditLog
+
+%% === Adapters (API integration) ===
+class PaymentGatewayAdapter {
+  <<interface>>
+  +charge()
+  +refund()
+}
+class ShippingProviderAdapter {
+  <<interface>>
+  +createShipment()
+  +trackShipment()
+}
+
+PaymentGatewayAdapter <.. CardPayment
+PaymentGatewayAdapter <.. EWalletPayment
+ShippingProviderAdapter <.. Delivery
+
+%% === Product Factory ===
+class ProductFactory {
+  +createProduct()
+}
+
 ```
